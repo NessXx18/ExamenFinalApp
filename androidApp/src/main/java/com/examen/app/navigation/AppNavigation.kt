@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.examen.app.ui.screens.ChatScreen
 import com.examen.app.ui.screens.ChatListScreen   
 
 sealed class Screen(val route: String) {
@@ -40,7 +41,10 @@ fun AppNavigation() {
             arguments = listOf(navArgument("sessionId") { type = NavType.StringType })
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
-            // TODO: Navigate to ChatScreen with sessionId
+            ChatScreen(
+                sessionId = sessionId,
+                onBackClick = { navController.popBackStack() }
+            )
         }
 
         composable(Screen.Profile.route) {
