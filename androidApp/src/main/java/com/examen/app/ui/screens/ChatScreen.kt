@@ -3,6 +3,7 @@ package com.examen.app.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -129,7 +130,7 @@ fun ChatScreen(
                             items = messages,
                             key = { message -> message.id }
                         ) { message ->
-                            ChatBubble(message = message)
+                            ChatMessageItem(message = message)
                         }
 
                         if (isTyping) {
@@ -147,6 +148,50 @@ fun ChatScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ChatMessageItem(
+    message: Message,
+    modifier: Modifier = Modifier
+) {
+    val alignment = if (message.isFromUser) Alignment.End else Alignment.Start
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = alignment
+    ) {
+        if (message.hasRiskSignal) {
+            RiskAlert()
+        }
+
+        ChatBubble(message = message)
+    }
+}
+
+@Composable
+fun RiskAlert(
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .padding(bottom = 6.dp)
+            .widthIn(max = 300.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Si necesitas ayuda inmediata, llama a SAPTEL: 55 5259 8121",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
@@ -199,6 +244,7 @@ private fun MessageInput(
     onSendMessage: (String) -> Unit
 ) {
     var text by remember { mutableStateOf("") }
+    val canSend = enabled && text.isNotBlank()
 
     Row(
         modifier = Modifier
@@ -222,7 +268,7 @@ private fun MessageInput(
                 text = ""
                 onSendMessage(message)
             },
-            enabled = enabled && text.isNotBlank()
+            enabled = canSend
         ) {
             Icon(
                 imageVector = Icons.Default.Send,

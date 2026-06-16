@@ -35,7 +35,8 @@ data class Message(
     val id: String,
     val text: String,
     val isFromUser: Boolean,
-    val timestamp: String
+    val timestamp: String,
+    val hasRiskSignal: Boolean = false
 )
 
 data class ApiMessage(
@@ -49,7 +50,8 @@ data class ApiMessage(
         id = id,
         text = content,
         isFromUser = role == "user",
-        timestamp = timestamp
+        timestamp = timestamp,
+        hasRiskSignal = hasRiskSignal == true
     )
 }
 
