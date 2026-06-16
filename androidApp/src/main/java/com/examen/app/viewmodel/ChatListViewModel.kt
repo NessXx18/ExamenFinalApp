@@ -3,16 +3,13 @@ package com.examen.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.examen.app.models.ChatSession
+import com.examen.app.models.CreateSessionRequest
 import com.examen.app.network.ApiClient
 import com.examen.app.network.ApiService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.UUID
 
 
 sealed interface ChatListUiState {
@@ -61,23 +58,30 @@ class ChatListViewModel : ViewModel() {
 
     
     fun createNewSession(onCreated: (ChatSession) -> Unit = {}) {
-        val nuevaSesion = ChatSession(
-            id = UUID.randomUUID().toString(),
-            title = "Nueva conversación",
-            createdAt = currentDate(),
-            lastMessage = null
-        )
+        viewModelScope.launch {
+            try {
+                val response = apiService.createSession(
+                    CreateSessionRequest(title = "Nueva conversación")
+                )
 
-        // Se conserva la lista actual (si existe) y se antepone la nueva sesión.
-        val listaActual = (_uiState.value as? ChatListUiState.Success)?.sessions ?: emptyList()
-        _uiState.value = ChatListUiState.Success(listOf(nuevaSesion) + listaActual)
+                if (response.isSuccessful && response.body() != null) {
+                    val nuevaSesion = response.body()!!
 
-        onCreated(nuevaSesion)
-    }
+                    // Se conserva la lista actual (si existe) y se antepone la nueva sesión.
+                    val listaActual = (_uiState.value as? ChatListUiState.Success)?.sessions ?: emptyList()
+                    _uiState.value = ChatListUiState.Success(listOf(nuevaSesion) + listaActual)
 
-   
-    private fun currentDate(): String {
-        val formato = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        return formato.format(Date())
+                    onCreated(nuevaSesion)
+                } else {
+                    _uiState.value = ChatListUiState.Error(
+                        "Error ${response.code()}: no se pudo crear la conversación"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = ChatListUiState.Error(
+                    e.message ?: "Error de conexión con el servidor"
+                )
+            }
+        }
     }
 }

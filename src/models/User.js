@@ -1,23 +1,28 @@
-const mongoose = require('mongoose');
+const { getDB } = require('../config/db');
+const { v4: uuidv4 } = require('uuid');
 
-const UserSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
+const User = {
+  findByEmail(email) {
+    const db = getDB();
+    return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    lowercase: true
+
+  findById(id) {
+    const db = getDB();
+    return db.prepare('SELECT * FROM users WHERE id = ?').get(id);
   },
-  password: {
-    type: String,
-    required: true
+
+  create({ name, email, password }) {
+    const db = getDB();
+    const id = uuidv4();
+    const createdAt = new Date().toISOString();
+
+    db.prepare(
+      'INSERT INTO users (id, name, email, password, createdAt) VALUES (?, ?, ?, ?, ?)'
+    ).run(id, name, email.toLowerCase().trim(), password, createdAt);
+
+    return { id, name, email: email.toLowerCase().trim(), createdAt };
   }
-}, {
-  timestamps: true
-});
+};
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = User;

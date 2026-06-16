@@ -66,3 +66,7 @@ data class SendMessageResponse(
     val aiMessage: ApiMessage,
     val sessionId: String
 )
+
+data class CreateSessionRequest(
+    val title: String
+)

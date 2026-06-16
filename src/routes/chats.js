@@ -1,20 +1,25 @@
 const express = require('express');
 const authMiddleware = require('../middleware/authMiddleware');
 const { getChatResponse } = require('../services/geminiService');
-const ChatSession = require('../models/ChatSession');
+const { ChatSession, Message } = require('../models/ChatSession');
 const router = express.Router();
 
 // Obtener todas las sesiones de un usuario
 router.get('/sessions', authMiddleware, async (req, res) => {
   try {
-    const userSessions = await ChatSession.find({ userId: req.userId }).sort({ updatedAt: -1 });
-    res.json(userSessions.map(s => ({
-      id: s._id,
-      title: s.title,
-      lastMessage: s.messages[s.messages.length - 1]?.content || '',
-      updatedAt: s.updatedAt,
-      messageCount: s.messages.length
-    })));
+    const sessions = ChatSession.findByUserId(req.userId);
+
+    res.json(sessions.map(s => {
+      // Obtener el último mensaje de la sesión
+      const lastMsg = Message.getLastBySessionId(s.id);
+      return {
+        id: s.id,
+        title: s.title,
+        createdAt: s.createdAt,
+        lastMessage: lastMsg ? lastMsg.content : null,
+        updatedAt: s.updatedAt
+      };
+    }));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -23,21 +28,18 @@ router.get('/sessions', authMiddleware, async (req, res) => {
 // Crear nueva sesión de chat
 router.post('/sessions', authMiddleware, async (req, res) => {
   try {
-    const count = await ChatSession.countDocuments({ userId: req.userId });
-    
-    const session = new ChatSession({
+    const count = ChatSession.countByUserId(req.userId);
+
+    const session = ChatSession.create({
       userId: req.userId,
-      title: req.body.title || `Sesión ${count + 1}`,
-      messages: []
+      title: req.body.title || `Sesión ${count + 1}`
     });
-    
-    await session.save();
-    
+
     res.status(201).json({
-      id: session._id,
+      id: session.id,
       title: session.title,
-      messages: session.messages,
       createdAt: session.createdAt,
+      lastMessage: null,
       updatedAt: session.updatedAt
     });
   } catch (error) {
@@ -48,33 +50,21 @@ router.post('/sessions', authMiddleware, async (req, res) => {
 // Obtener mensajes de una sesión
 router.get('/sessions/:sessionId/messages', authMiddleware, async (req, res) => {
   try {
-    // Para implementar una paginación sencilla usando limit y skip de Mongoose,
-    // primero consultamos el documento para obtener la cantidad total de mensajes.
-    const sessionDoc = await ChatSession.findOne({ _id: req.params.sessionId, userId: req.userId });
-    
-    if (!sessionDoc) {
+    const session = ChatSession.findById(req.params.sessionId, req.userId);
+
+    if (!session) {
       return res.status(404).json({ error: 'Sesión no encontrada' });
     }
-    
-    const totalMessages = sessionDoc.messages.length;
-    const limit = 50;
-    const skip = Math.max(0, totalMessages - limit);
-    
-    // Proyectamos el array usando limit y skip mediante la propiedad $slice en Mongoose
-    const session = await ChatSession.findOne(
-      { _id: req.params.sessionId, userId: req.userId },
-      { messages: { $slice: [skip, limit] } }
-    );
-    
-    const messages = session.messages.map(m => ({
-      id: m._id,
+
+    const messages = Message.getBySessionId(req.params.sessionId, 50);
+
+    res.json(messages.map(m => ({
+      id: m.id,
       role: m.role,
       content: m.content,
-      hasRiskSignal: m.hasRiskSignal,
+      hasRiskSignal: m.hasRiskSignal === 1,
       timestamp: m.timestamp
-    }));
-    
-    res.json(messages);
+    })));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -87,52 +77,48 @@ router.post('/sessions/:sessionId/messages', authMiddleware, async (req, res) =>
     if (!message?.trim()) {
       return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
     }
-    
-    const session = await ChatSession.findOne({ _id: req.params.sessionId, userId: req.userId });
-    
+
+    const session = ChatSession.findById(req.params.sessionId, req.userId);
+
     if (!session) {
       return res.status(404).json({ error: 'Sesión no encontrada' });
     }
-    
+
     // Agregar mensaje del usuario
-    const userMessage = {
+    const userMessage = Message.create({
+      sessionId: session.id,
       role: 'user',
-      content: message,
-      timestamp: new Date()
-    };
-    session.messages.push(userMessage);
-    
-    // Obtener respuesta de Gemini pasando los últimos 10 mensajes
-    const aiResponse = await getChatResponse(message, session.messages.slice(-10));
-    
-    const aiMessage = {
+      content: message
+    });
+
+    // Obtener los últimos 10 mensajes para contexto de Gemini
+    const recentMessages = Message.getBySessionId(session.id, 10);
+
+    // Obtener respuesta de Gemini
+    const aiResponse = await getChatResponse(message, recentMessages);
+
+    const aiMessage = Message.create({
+      sessionId: session.id,
       role: 'assistant',
       content: aiResponse.message,
-      hasRiskSignal: aiResponse.hasRiskSignal,
-      timestamp: new Date()
-    };
-    session.messages.push(aiMessage);
-    
-    await session.save();
-    
-    const savedUserMessage = session.messages[session.messages.length - 2];
-    const savedAiMessage = session.messages[session.messages.length - 1];
-    
+      hasRiskSignal: aiResponse.hasRiskSignal
+    });
+
     res.json({
       userMessage: {
-        id: savedUserMessage._id,
-        role: savedUserMessage.role,
-        content: savedUserMessage.content,
-        timestamp: savedUserMessage.timestamp
+        id: userMessage.id,
+        role: userMessage.role,
+        content: userMessage.content,
+        timestamp: userMessage.timestamp
       },
       aiMessage: {
-        id: savedAiMessage._id,
-        role: savedAiMessage.role,
-        content: savedAiMessage.content,
-        hasRiskSignal: savedAiMessage.hasRiskSignal,
-        timestamp: savedAiMessage.timestamp
+        id: aiMessage.id,
+        role: aiMessage.role,
+        content: aiMessage.content,
+        hasRiskSignal: aiMessage.hasRiskSignal,
+        timestamp: aiMessage.timestamp
       },
-      sessionId: session._id
+      sessionId: session.id
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

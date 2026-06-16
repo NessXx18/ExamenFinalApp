@@ -3,6 +3,7 @@ package com.examen.app.network
 import com.examen.app.models.AuthResponse
 import com.examen.app.models.ApiMessage
 import com.examen.app.models.ChatSession
+import com.examen.app.models.CreateSessionRequest
 import com.examen.app.models.LoginRequest
 import com.examen.app.models.RegisterRequest
 import com.examen.app.models.SendMessageRequest
@@ -22,6 +23,9 @@ interface ApiService {
 
     @GET("chats/sessions")
     suspend fun getSessions(): Response<List<ChatSession>>
+
+    @POST("chats/sessions")
+    suspend fun createSession(@Body request: CreateSessionRequest): Response<ChatSession>
 
     @GET("chats/sessions/{sessionId}/messages")
     suspend fun getMessages(

@@ -1,10 +1,10 @@
 # MindCare AI - Backend API
 
-Esta es la API Backend para el proyecto **MindCare AI**, construida con **Node.js**, **Express**, **MongoDB (Mongoose)** y la **API de Gemini (Google Generative AI)** para brindar apoyo emocional empático e interactivo.
+Esta es la API Backend para el proyecto **MindCare AI**, construida con **Node.js**, **Express**, **SQLite (better-sqlite3)** y la **API de Gemini (Google Generative AI)** para brindar apoyo emocional empático e interactivo.
 
 ## Características
 
-- **Conexión a MongoDB**: Persistencia de datos mediante esquemas y modelos de Mongoose.
+- **Base de datos SQLite**: Persistencia de datos local sin necesidad de instalar un servidor de base de datos externo. La base de datos (`mindguard.db`) se crea automáticamente al iniciar el servidor.
 - **Autenticación Segura**: Registro e inicio de sesión de usuarios usando contraseñas cifradas (`bcryptjs`) y tokens `JWT`.
 - **Sesiones de Chat**: Persistencia de sesiones de chat y mensajes con roles configurados (`user` y `assistant`).
 - **Integración con Gemini AI**: Generación de respuestas inteligentes, adaptativas y análisis de señales de crisis emocional en tiempo real.
@@ -16,7 +16,8 @@ Esta es la API Backend para el proyecto **MindCare AI**, construida con **Node.j
 
 Asegúrate de tener instalado:
 - [Node.js](https://nodejs.org/) (Versión 18 o superior recomendada)
-- [MongoDB](https://www.mongodb.com/try/download/community) (Local o una instancia en la nube como MongoDB Atlas)
+
+> **Nota:** SQLite se instala automáticamente como dependencia de npm. No necesitas instalar ningún servidor de base de datos.
 
 ---
 
@@ -43,7 +44,6 @@ Asegúrate de tener instalado:
    PORT=3000
    JWT_SECRET=tu_secreto_jwt_super_seguro
    GEMINI_API_KEY=tu_api_key_de_gemini
-   MONGODB_URI=mongodb://127.0.0.1:27017/mindcare
    ```
 
 4. **Ejecutar el servidor**:
@@ -55,6 +55,12 @@ Asegúrate de tener instalado:
      ```bash
      npm start
      ```
+
+   Al iniciar, verás en consola:
+   ```
+   SQLite Connected: /ruta/al/proyecto/mindguard.db
+   Server running on port 3000
+   ```
 
 ---
 
