@@ -16,6 +16,10 @@ object ApiClient {
         jwtToken = token
     }
 
+    fun clearToken() {
+        jwtToken = null
+    }
+
     private val authInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
         val requestBuilder = originalRequest.newBuilder()

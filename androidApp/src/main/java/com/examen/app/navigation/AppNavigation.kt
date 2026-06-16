@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.examen.app.ui.screens.ChatScreen
 import com.examen.app.ui.screens.ChatListScreen   
+import com.examen.app.ui.screens.ProfileScreen
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -48,7 +49,14 @@ fun AppNavigation() {
         }
 
         composable(Screen.Profile.route) {
-            // TODO: Navigate to ProfileScreen
+            ProfileScreen(
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
     }
 }
