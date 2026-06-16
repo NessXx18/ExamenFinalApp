@@ -1,10 +1,12 @@
 package com.examen.app.network
 
 import com.examen.app.models.AuthResponse
+import com.examen.app.models.ApiMessage
 import com.examen.app.models.ChatSession
 import com.examen.app.models.LoginRequest
-import com.examen.app.models.Message
 import com.examen.app.models.RegisterRequest
+import com.examen.app.models.SendMessageRequest
+import com.examen.app.models.SendMessageResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -18,12 +20,17 @@ interface ApiService {
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
-    @GET("chat/sessions")
+    @GET("chats/sessions")
     suspend fun getSessions(): Response<List<ChatSession>>
 
-    @POST("chat/{sessionId}/messages")
+    @GET("chats/sessions/{sessionId}/messages")
+    suspend fun getMessages(
+        @Path("sessionId") sessionId: String
+    ): Response<List<ApiMessage>>
+
+    @POST("chats/sessions/{sessionId}/messages")
     suspend fun sendMessage(
         @Path("sessionId") sessionId: String,
-        @Body message: Message
-    ): Response<Message>
+        @Body request: SendMessageRequest
+    ): Response<SendMessageResponse>
 }
