@@ -3,3 +3,11 @@ node_modules
 *.db
 *.sqlite
 *.sqlite3
+
+# Android and Gradle
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
